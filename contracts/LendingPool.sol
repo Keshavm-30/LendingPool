@@ -10,11 +10,11 @@ contract LendingPool is Ownable{
 
     ImockUSDT public mockUSDT;
     Icollateral public collateralToken;
-    uint public totalInterestAccumulated;
     uint public BORROWER_INTEREST_RATE = 1000;
     uint public DEPOSITOR_INTEREST_RATE = 500;
     uint public MIN_LIQUIDITY = 1000;
     uint totalLoanIDs;
+    uint totalDepositedAmount;
 
     struct DepositorDetail{
         uint totalOwed;
@@ -33,7 +33,7 @@ contract LendingPool is Ownable{
     mapping(uint => BorrowerDetails) public loanID;
     mapping(address=> bool) isCollateralWhitelisted;
 
-    event borrow(address borrower, uint loanID, uint amountBorrowed);
+    event borrowEvent(address borrower, uint loanID, uint amountBorrowed);
 
     error ZeroAddress();
     error ZeroAmount();
@@ -41,6 +41,8 @@ contract LendingPool is Ownable{
     error  NotWhiteListed();
     error AssetLiquidated();
     error NotAdepositor();
+    error ThresholdLiquidity();
+    error NotTheCaller();
 
     constructor(address _mockUSDT) Ownable(msg.sender){
         if(_mockUSDT == address(0)){
@@ -48,6 +50,19 @@ contract LendingPool is Ownable{
         }
        mockUSDT = ImockUSDT(_mockUSDT);
     }
+
+
+    function withdrawInterest() public {
+        DepositorDetail storage _depositordetail = depositor[msg.sender];
+        if(_depositordetail.totalOwed==0){
+            revert NotAdepositor();
+        }
+         uint epoctimeDiff = block.timestamp - _depositordetail.lastTimeOfDeposit;
+        uint interestAmount = calculateInterestDepositor(_depositordetail.totalOwed,epoctimeDiff);
+        _depositordetail.lastTimeOfDeposit = block.timestamp;
+        mockUSDT.transfer(msg.sender,interestAmount);
+    }
+
 
     function whiteListCollateral(address _collateralToken) external onlyOwner{
         if(isCollateralWhitelisted[_collateralToken]){
@@ -68,7 +83,7 @@ contract LendingPool is Ownable{
         _depositordetail.totalOwed += _amount+interestAmount;
         _depositordetail.lastTimeOfDeposit= block.timestamp;
         _depositordetail.totalDeposit += _amount;
-
+        totalDepositedAmount += _amount;
     }
 
     function borrow(uint _amount, address _collateralToken) external{
@@ -85,7 +100,7 @@ contract LendingPool is Ownable{
         _borrowerDetail.collateralToken = _collateralToken;
         _borrowerDetail.timeOfBorrow = block.timestamp;
         _borrowerDetail.borrowedAmount = _amount;
-        emit borrow(msg.sender,totalLoanIDs,_amount);
+        emit borrowEvent(msg.sender,totalLoanIDs,_amount);
         totalLoanIDs++;
     }
 
@@ -102,24 +117,22 @@ contract LendingPool is Ownable{
       mockUSDT.transferFrom(msg.sender,address(this),_amount+interestAmount);
       Icollateral(_borrowerDetail.collateralToken).transfer(msg.sender,_amount);
       _borrowerDetail.borrowedAmount =0;
-      totalInterestAccumulated+ = interestAmount;
+
     }
 
 
-    function withdrawInterest() external{
-        DepositorDetail storage _depositordetail = depositor[msg.sender];
-        if(_depositordetail.totalOwed==0){
-            revert NotAdepositor();
-        }
-         uint epoctimeDiff = block.timestamp - _depositordetail.lastTimeOfDeposit;
-        uint interestAmount = calculateInterestDepositor(_depositordetail.totalOwed,epoctimeDiff);
-        _depositordetail.lastTimeOfDeposit = block.timestamp;
-        totalInterestAccumulated -= interestAmount;
-        mockUSDT.transfer(msg.sender,interestAmount);
+    function withdrawLiquidity() external{
+     DepositorDetail storage _depositordetail = depositor[msg.sender];
+     if(mockUSDT.balanceOf(address(this)) - _depositordetail.totalOwed <= MIN_LIQUIDITY * (10 ** mockUSDT.decimals())){
+        revert ThresholdLiquidity();
+     }
+     withdrawInterest();
+     uint owedAmount = _depositordetail.totalOwed;
+     _depositordetail.totalOwed = 0;
+     _depositordetail.totalDeposit =0;
+     mockUSDT.transfer(msg.sender,owedAmount);
+
     }
-
-
-
 
    function calculateInterestDepositor(uint _amount, uint _epocTimeDiff) public view returns(uint){
     return _amount*_epocTimeDiff/31536000*DEPOSITOR_INTEREST_RATE/10000;
