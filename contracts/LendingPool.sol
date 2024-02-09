@@ -134,11 +134,11 @@ contract LendingPool is Ownable{
 
     }
 
-   function calculateInterestDepositor(uint _amount, uint _epocTimeDiff) public view returns(uint){
+   function calculateInterestDepositor(uint _amount, uint _epocTimeDiff) internal view returns(uint){
     return _amount*_epocTimeDiff/31536000*DEPOSITOR_INTEREST_RATE/10000;
    }
 
-    function calculateInterestBorrower(uint _amount, uint _epocTimeDiff) public view returns(uint){
+    function calculateInterestBorrower(uint _amount, uint _epocTimeDiff) internal view returns(uint){
     return _amount*_epocTimeDiff/31536000*BORROWER_INTEREST_RATE/10000;
    }
 }
