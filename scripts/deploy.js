@@ -1,33 +1,29 @@
-// We require the Hardhat Runtime Environment explicitly here. This is optional
-// but useful for running the script in a standalone fashion through `node <script>`.
-//
-// You can also run a script with `npx hardhat run <script>`. If you do that, Hardhat
-// will compile your contracts, add the Hardhat Runtime Environment's members to the
-// global scope, and execute the script.
+// const {ethers} = require('hardhat');
 const hre = require("hardhat");
+// const { time } = require("@nomicfoundation/hardhat-network-helpers");
 
-async function main() {
-  const currentTimestampInSeconds = Math.round(Date.now() / 1000);
-  const unlockTime = currentTimestampInSeconds + 60;
+async function main(){
 
-  const lockedAmount = hre.ethers.parseEther("0.001");
+  // const usdtFactory = await ethers.getContractFactory("mockUSDT");
+  // const usdt = await usdtFactory.deploy();
+  // const usdt = await hre.ethers.deployContract("mockUSDT");
+  // // await time.increase(3);
 
-  const lock = await hre.ethers.deployContract("Lock", [unlockTime], {
-    value: lockedAmount,
-  });
+  // console.log("usdt Address",usdt.target);
 
-  await lock.waitForDeployment();
+  const pool = await hre.ethers.deployContract("LendingPool",["0xbcc2DA91DDC85cAd5704Ed8E6A7A6ADc9d9b617a"]);
 
-  console.log(
-    `Lock with ${ethers.formatEther(
-      lockedAmount
-    )}ETH and unlock timestamp ${unlockTime} deployed to ${lock.target}`
-  );
+  console.log("Pool Address", pool.target);
+  
+  // usdt Address 0xbcc2DA91DDC85cAd5704Ed8E6A7A6ADc9d9b617a
+  // Pool Address 0xFBe4Dd94Ee15b6A182b69742c804FED4e62fc52d
+
+
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
-main().catch((error) => {
+main()
+.then(() => process.exit(0))
+.catch((error) => {
   console.error(error);
-  process.exitCode = 1;
+  process.exit(1);
 });
