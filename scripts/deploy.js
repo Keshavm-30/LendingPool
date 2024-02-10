@@ -4,20 +4,15 @@ const hre = require("hardhat");
 
 async function main(){
 
-  // const usdtFactory = await ethers.getContractFactory("mockUSDT");
-  // const usdt = await usdtFactory.deploy();
-  // const usdt = await hre.ethers.deployContract("mockUSDT");
-  // // await time.increase(3);
+  const usdt = await hre.ethers.deployContract("mockUSDT");
+  console.log("usdt Address",usdt.target);
 
-  // console.log("usdt Address",usdt.target);
-
-  const pool = await hre.ethers.deployContract("LendingPool",["0xbcc2DA91DDC85cAd5704Ed8E6A7A6ADc9d9b617a"]);
+  const pool = await hre.ethers.deployContract("LendingPool",[usdt.target]);
 
   console.log("Pool Address", pool.target);
   
-  // usdt Address 0xbcc2DA91DDC85cAd5704Ed8E6A7A6ADc9d9b617a
-  // Pool Address 0xFBe4Dd94Ee15b6A182b69742c804FED4e62fc52d
-
+  // usdt Address 0xBd8156e8D422319A293A24F96eEa8639920629c5
+  // Pool Address 0x9C29EDfBD8075688d4d87E16EAdc3b179B951948
 
 }
 

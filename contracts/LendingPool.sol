@@ -4,9 +4,9 @@ pragma solidity 0.8.20;
 import "./interface/Icollateral.sol";
 import "./Mock/interface/ImockUSDT.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "hardhat/console.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract LendingPool is Ownable{
+contract LendingPool is Ownable,ReentrancyGuard{
 
     ImockUSDT public mockUSDT;
     Icollateral public collateralToken;
@@ -59,7 +59,7 @@ contract LendingPool is Ownable{
         return interestAmount;
     }
 
-    function withdrawInterest() public {
+    function withdrawInterest() public nonReentrant {
         DepositorDetail storage _depositordetail = depositor[msg.sender];
         if(_depositordetail.totalOwed==0){
             revert NotAdepositor();
@@ -80,7 +80,7 @@ contract LendingPool is Ownable{
         isCollateralWhitelisted[_collateralToken] = true;
     }
 
-    function provideLiquidity(uint _amount) external{
+    function provideLiquidity(uint _amount) external nonReentrant{
         if(_amount == 0){
             revert ZeroAmount();
 
@@ -95,7 +95,7 @@ contract LendingPool is Ownable{
         totalDepositedAmount += _amount;
     }
 
-    function borrow(uint _amount, address _collateralToken) external{
+    function borrow(uint _amount, address _collateralToken) external nonReentrant{
         if(_amount==0){
             revert ZeroAmount();
         }
@@ -113,7 +113,7 @@ contract LendingPool is Ownable{
         mockUSDT.transfer(msg.sender,_amount);
     }
 
-    function repay(uint _amount, uint _loanID) external{
+    function repay(uint _amount, uint _loanID) external nonReentrant{
       BorrowerDetails storage _borrowerDetail = loanID[_loanID];
       if(_borrowerDetail.borrower!= msg.sender){
           revert NotTheCaller();
@@ -123,7 +123,6 @@ contract LendingPool is Ownable{
         if(interestAmount>=_borrowerDetail.borrowedAmount){
             revert AssetLiquidated();
         }
-        console.log("interestAmountn",interestAmount);
       mockUSDT.transferFrom(msg.sender,address(this),_amount+interestAmount);
       Icollateral(_borrowerDetail.collateralToken).transfer(msg.sender,_amount);
       _borrowerDetail.borrowedAmount =0;
@@ -131,7 +130,7 @@ contract LendingPool is Ownable{
     }
 
 
-    function withdrawLiquidity() external{
+    function withdrawLiquidity() external nonReentrant{
      DepositorDetail storage _depositordetail = depositor[msg.sender];
      if(mockUSDT.balanceOf(address(this)) - _depositordetail.totalOwed + getInterestAmount(msg.sender)<= MIN_LIQUIDITY * (10 ** mockUSDT.decimals())){
         revert ThresholdLiquidity();
