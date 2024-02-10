@@ -52,13 +52,19 @@ contract LendingPool is Ownable{
     }
 
 
+     function getInterestAmount(address _depositor) public view returns(uint){
+        DepositorDetail storage _depositordetail = depositor[_depositor];
+        uint epoctimeDiff = block.timestamp - _depositordetail.lastTimeOfDeposit;
+        uint interestAmount = calculateInterestDepositor(_depositordetail.totalOwed,epoctimeDiff);
+        return interestAmount;
+    }
+
     function withdrawInterest() public {
         DepositorDetail storage _depositordetail = depositor[msg.sender];
         if(_depositordetail.totalOwed==0){
             revert NotAdepositor();
         }
-         uint epoctimeDiff = block.timestamp - _depositordetail.lastTimeOfDeposit;
-        uint interestAmount = calculateInterestDepositor(_depositordetail.totalOwed,epoctimeDiff);
+        uint interestAmount = getInterestAmount(msg.sender);
         _depositordetail.lastTimeOfDeposit = block.timestamp;
         mockUSDT.transfer(msg.sender,interestAmount);
     }
@@ -95,13 +101,13 @@ contract LendingPool is Ownable{
         }
         BorrowerDetails storage _borrowerDetail = loanID[totalLoanIDs];
         Icollateral(_collateralToken).transferFrom(msg.sender,address(this),_amount);
-        mockUSDT.transfer(msg.sender,_amount);
         _borrowerDetail.borrower = msg.sender;
         _borrowerDetail.collateralToken = _collateralToken;
         _borrowerDetail.timeOfBorrow = block.timestamp;
         _borrowerDetail.borrowedAmount = _amount;
         emit borrowEvent(msg.sender,totalLoanIDs,_amount);
         totalLoanIDs++;
+        mockUSDT.transfer(msg.sender,_amount);
     }
 
     function repay(uint _amount, uint _loanID) external{
@@ -123,7 +129,7 @@ contract LendingPool is Ownable{
 
     function withdrawLiquidity() external{
      DepositorDetail storage _depositordetail = depositor[msg.sender];
-     if(mockUSDT.balanceOf(address(this)) - _depositordetail.totalOwed <= MIN_LIQUIDITY * (10 ** mockUSDT.decimals())){
+     if(mockUSDT.balanceOf(address(this)) - _depositordetail.totalOwed + getInterestAmount(msg.sender)<= MIN_LIQUIDITY * (10 ** mockUSDT.decimals())){
         revert ThresholdLiquidity();
      }
      withdrawInterest();
