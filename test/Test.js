@@ -168,7 +168,6 @@ describe("LendingPool", function () {
       expect(usdtBalanceOfPool).to.be.greaterThan(ethers.parseEther("510"));
 
       const InterestAmountOfUser1 = await pool.getInterestAmount(user1.address);
-      console.log(InterestAmountOfUser1);
       await pool.connect(user1).withdrawInterest();
 
       const user1BalanceUsdt = await usdt.balanceOf(user1.address);

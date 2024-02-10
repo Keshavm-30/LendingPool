@@ -11,8 +11,9 @@ async function main(){
 
   console.log("Pool Address", pool.target);
   
-  // usdt Address 0xBd8156e8D422319A293A24F96eEa8639920629c5
-  // Pool Address 0x9C29EDfBD8075688d4d87E16EAdc3b179B951948
+  
+  // usdt Address 0x5A9FCf47e9b318335DDA66781bdBCD6cA856141F
+  // Pool Address 0xf1774626fFcB715A32Aed660147Cbb94Fc4A0D9d
 
 }
 

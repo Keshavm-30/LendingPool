@@ -5,11 +5,10 @@ import "./interface/Icollateral.sol";
 import "./Mock/interface/ImockUSDT.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-
 contract LendingPool is Ownable,ReentrancyGuard{
 
     ImockUSDT public mockUSDT;
-    Icollateral public collateralToken;
+    // Icollateral public collateralToken;
     uint public BORROWER_INTEREST_RATE = 1000;
     uint public DEPOSITOR_INTEREST_RATE = 500;
     uint public MIN_LIQUIDITY = 1000;
@@ -59,7 +58,7 @@ contract LendingPool is Ownable,ReentrancyGuard{
         return interestAmount;
     }
 
-    function withdrawInterest() public nonReentrant {
+    function withdrawInterest() public {
         DepositorDetail storage _depositordetail = depositor[msg.sender];
         if(_depositordetail.totalOwed==0){
             revert NotAdepositor();
