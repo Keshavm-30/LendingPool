@@ -71,6 +71,9 @@ contract LendingPool is Ownable{
 
 
     function whiteListCollateral(address _collateralToken) external onlyOwner{
+        if(_collateralToken == address(0)){
+            revert ZeroAddress();
+        }
         if(isCollateralWhitelisted[_collateralToken]){
             revert AlreadyWhitelisted();
         }
@@ -120,6 +123,7 @@ contract LendingPool is Ownable{
         if(interestAmount>=_borrowerDetail.borrowedAmount){
             revert AssetLiquidated();
         }
+        console.log("interestAmountn",interestAmount);
       mockUSDT.transferFrom(msg.sender,address(this),_amount+interestAmount);
       Icollateral(_borrowerDetail.collateralToken).transfer(msg.sender,_amount);
       _borrowerDetail.borrowedAmount =0;

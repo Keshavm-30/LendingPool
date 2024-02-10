@@ -103,7 +103,7 @@ describe("LendingPool", function () {
 
     });
 
-    it.only("Borrow", async function () {
+    it("Borrow", async function () {
      
       
       await usdt.mint(user1.address,ethers.parseEther("500"));
@@ -144,9 +144,50 @@ describe("LendingPool", function () {
 
     });
 
-    it("Checking the popMax", async function () {
+    it("Repay", async function () {
      
+      await usdt.mint(user1.address,ethers.parseEther("500"));
+      await usdt.connect(user1).approve(pool.target,ethers.parseEther("500"));
 
+      await pool.connect(user1).provideLiquidity(ethers.parseEther("500"));    
+
+
+      await collateralToken.mint(user5.address,ethers.parseEther("100"))
+      await collateralToken.connect(user5).approve(pool.target,ethers.parseEther("100"))
+      await pool.connect(user5).borrow(ethers.parseEther("100"),collateralToken.target)
+
+      await time.increase(31536000);
+
+      await usdt.mint(user5.address,ethers.parseEther("12000"));
+      await usdt.connect(user5).approve(pool.target,ethers.parseEther("1200"));
+
+      await pool.connect(user5).repay(ethers.parseEther("100"),0);
+
+
+      const usdtBalanceOfPool  = await usdt.balanceOf(pool.target);
+      expect(usdtBalanceOfPool).to.be.greaterThan(ethers.parseEther("510"));
+
+      const InterestAmountOfUser1 = await pool.getInterestAmount(user1.address);
+      console.log(InterestAmountOfUser1);
+      await pool.connect(user1).withdrawInterest();
+
+      const user1BalanceUsdt = await usdt.balanceOf(user1.address);
+      expect(user1BalanceUsdt).to.be.greaterThan(ethers.parseEther("25"));
+      expect(user1BalanceUsdt).to.be.lessThan(ethers.parseEther("25.1"));
+
+
+      const usdtBalanceOfPoolAfter  = await usdt.balanceOf(pool.target);
+      expect(usdtBalanceOfPoolAfter).to.be.greaterThan(ethers.parseEther("484"));
+      expect(usdtBalanceOfPoolAfter).to.be.lessThan(ethers.parseEther("485"));
+
+
+
+      const collateralTokenBalanceOfPool = await collateralToken.balanceOf(pool.target);
+      expect(collateralTokenBalanceOfPool).to.be.eq(ethers.parseEther("0"));
+
+      const collateralTokenBalanceOfUser5 = await  collateralToken.balanceOf(user5.address);
+      expect(collateralTokenBalanceOfUser5).to.be.eq(ethers.parseEther("100"));
+     
 
     });
 
