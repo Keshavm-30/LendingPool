@@ -5,9 +5,11 @@ This project demonstrates a basic Hardhat use case. It comes with a sample contr
 Try running some of the following tasks:
 
 ```shell
-npx hardhat help
+npm i
+npx hardhat compile
 npx hardhat test
 REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat run scripts/deploy.js
-```
+npx hardhat coverage 
+npx hardhat run --network sepolia scripts/deploy.js
+npx hardhat verify --network sepolia --contract contracts/Mock/mockUSDT.sol:mockUSDT <deployed-mockUSDT Address>
+npx hardhat verify --network sepolia <deployed-pool Address> <deployed-mockUSDT Address>
