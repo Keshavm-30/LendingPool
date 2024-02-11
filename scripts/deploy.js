@@ -10,10 +10,12 @@ async function main(){
   const pool = await hre.ethers.deployContract("LendingPool",[usdt.target]);
 
   console.log("Pool Address", pool.target);
+  // usdt Address 0xD22B7EB8986AA8B0416A576DFA06299BBCf5b13b
+  // Pool Address 0xCf05E53272DE464cde5cA35D8D67E84975e840f9
+
+  //npx hardhat verify --network sepolia --contract contracts/Mock/mockUSDT.sol:mockUSDT 0xD22B7EB8986AA8B0416A576DFA06299BBCf5b13b
   
-  
-  // usdt Address 0x5A9FCf47e9b318335DDA66781bdBCD6cA856141F
-  // Pool Address 0xf1774626fFcB715A32Aed660147Cbb94Fc4A0D9d
+  //npx hardhat verify --network sepolia 0xCf05E53272DE464cde5cA35D8D67E84975e840f9 0xD22B7EB8986AA8B0416A576DFA06299BBCf5b13b
 
 }
 
