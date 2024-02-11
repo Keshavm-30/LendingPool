@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 contract LendingPool is Ownable,ReentrancyGuard{
 
     ImockUSDT public mockUSDT;
-    // Icollateral public collateralToken;
     uint public BORROWER_INTEREST_RATE = 1000;
     uint public DEPOSITOR_INTEREST_RATE = 500;
     uint public MIN_LIQUIDITY = 1000;

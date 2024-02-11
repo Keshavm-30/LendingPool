@@ -5,6 +5,7 @@ const { time } = require("@nomicfoundation/hardhat-network-helpers");
 describe("LendingPool", function () {
   let owner,user1,user2,user3,user4,user5,user6,user7;
   let collateralToken,collateralTokenFactory, usdtFactory, usdt, pool, poolFactory
+  let collateralToken2,collateralToken2Factory, collateralToken3, collateralToken3Factory
 
     beforeEach(async function () {
       [owner,user1,user2,user3,user4,user5,user6,user7] = await ethers.getSigners();
@@ -20,15 +21,20 @@ describe("LendingPool", function () {
 
     await pool.connect(owner).whiteListCollateral(collateralToken.target);
 
-    // const latestTimestampeaFTER = await time.latest();
-    // console.log("lATESTTIMESTAMP AFTER", latestTimestampeaFTER);
-
     });
 
      
     it("Provide Liquidity Different Scenerios", async function () {
        await usdt.mint(user1.address,ethers.parseEther("500"));
        await usdt.connect(user1).approve(pool.target,ethers.parseEther("500"));
+
+       try {
+        await pool.connect(user1).provideLiquidity(ethers.parseEther("0"));
+        expect.fail("Transaction should have reverted");
+    } catch (error) {
+        expect(error.message).to.contain("ZeroAmount");
+    }
+
 
        await usdt.mint(user2.address,ethers.parseEther("370"));
        await usdt.connect(user2).approve(pool.target,ethers.parseEther("370"));
@@ -104,6 +110,13 @@ describe("LendingPool", function () {
     });
 
     it("Borrow", async function () {
+
+      try {
+        await pool.connect(user5).borrow(ethers.parseEther("0"),collateralToken.target)
+        expect.fail("Transaction should have reverted");
+    } catch (error) {
+        expect(error.message).to.contain("ZeroAmount");
+    }
      
       
       await usdt.mint(user1.address,ethers.parseEther("500"));
@@ -166,8 +179,6 @@ describe("LendingPool", function () {
 
       const usdtBalanceOfPool  = await usdt.balanceOf(pool.target);
       expect(usdtBalanceOfPool).to.be.greaterThan(ethers.parseEther("510"));
-
-      const InterestAmountOfUser1 = await pool.getInterestAmount(user1.address);
       await pool.connect(user1).withdrawInterest();
 
       const user1BalanceUsdt = await usdt.balanceOf(user1.address);
@@ -188,6 +199,123 @@ describe("LendingPool", function () {
       expect(collateralTokenBalanceOfUser5).to.be.eq(ethers.parseEther("100"));
      
 
+    });
+    it("WhiteListing", async function(){
+      collateralToken2Factory = await ethers.getContractFactory("collateralToken");
+      collateralToken2 = await collateralToken2Factory.deploy();
+
+
+      collateralToken3Factory = await ethers.getContractFactory("collateralToken");
+      collateralToken3 = await collateralToken3Factory.deploy();
+
+      try {
+        await pool.connect(owner).whiteListCollateral("0x0000000000000000000000000000000000000000");
+        expect.fail("Transaction should have reverted");
+    } catch (error) {
+        expect(error.message).to.contain("ZeroAddress");
+    }
+
+      try {
+        await pool.connect(owner).whiteListCollateral(collateralToken.target);
+        expect.fail("Transaction should have reverted");
+    } catch (error) {
+        expect(error.message).to.contain("AlreadyWhitelisted");
+    }
+
+      await pool.connect(owner).whiteListCollateral(collateralToken2.target);
+
+      await usdt.mint(user1.address,ethers.parseEther("500"));
+      await usdt.connect(user1).approve(pool.target,ethers.parseEther("500"));
+
+      await pool.connect(user1).provideLiquidity(ethers.parseEther("500"));   
+
+      
+
+      await collateralToken2.mint(user5.address,ethers.parseEther("100"))
+      await collateralToken2.connect(user5).approve(pool.target,ethers.parseEther("100"))
+      await pool.connect(user5).borrow(ethers.parseEther("100"),collateralToken2.target)
+
+
+      await collateralToken3.mint(user5.address,ethers.parseEther("100"))
+      await collateralToken3.connect(user5).approve(pool.target,ethers.parseEther("100"))
+
+
+      try {
+      await pool.connect(user5).borrow(ethers.parseEther("100"),collateralToken3.target)
+        expect.fail("Transaction should have reverted");
+    } catch (error) {
+        expect(error.message).to.contain("NotWhiteListed");
+    }  
+    })
+
+    it("WhithDrawInterest", async function(){
+
+      await usdt.mint(user1.address,ethers.parseEther("500"));
+      await usdt.connect(user1).approve(pool.target,ethers.parseEther("500"));
+
+      await pool.connect(user1).provideLiquidity(ethers.parseEther("500"));  
+
+      await time.increase(31536000);
+      
+      await pool.connect(user1).withdrawInterest();
+
+      const balanceAfterInterest = await usdt.balanceOf(user1.address);
+      expect(balanceAfterInterest).to.be.greaterThan(ethers.parseEther("25"));
+      expect(balanceAfterInterest).to.be.lessThan(ethers.parseEther("25.1"));
+
+    })
+
+    it ("Repay : Revert Checks", async function () {
+     
+      await usdt.mint(user1.address,ethers.parseEther("500"));
+      await usdt.connect(user1).approve(pool.target,ethers.parseEther("500"));
+
+      await pool.connect(user1).provideLiquidity(ethers.parseEther("500"));    
+
+
+      await collateralToken.mint(user5.address,ethers.parseEther("100"))
+      await collateralToken.connect(user5).approve(pool.target,ethers.parseEther("100"))
+      await pool.connect(user5).borrow(ethers.parseEther("1"),collateralToken.target)
+
+      await time.increase(315360000);
+      try {
+        await pool.connect(user1).repay(ethers.parseEther("100"),0);
+          expect.fail("Transaction should have reverted");
+      } catch (error) {
+          expect(error.message).to.contain("NotTheCaller");
+      } 
+
+      try {
+      await pool.connect(user5).repay(ethers.parseEther("1"),0);
+        
+          expect.fail("Transaction should have reverted");
+      } catch (error) {
+          expect(error.message).to.contain("AssetLiquidated");
+      } 
+    });
+
+    it ("WithDrawLiquidity: Revert Checks", async function () {
+     
+      await usdt.mint(user1.address,ethers.parseEther("500"));
+      await usdt.connect(user1).approve(pool.target,ethers.parseEther("500"));
+
+      await pool.connect(user1).provideLiquidity(ethers.parseEther("500"));    
+
+      await time.increase(315360000);
+      try {
+      await pool.connect(user1).withdrawLiquidity();
+          expect.fail("Transaction should have reverted");
+      } catch (error) {
+          expect(error.message).to.contain("ThresholdLiquidity");
+      } 
+
+
+      try {
+      await pool.connect(user2).withdrawInterest();
+            expect.fail("Transaction should have reverted");
+        } catch (error) {
+            expect(error.message).to.contain("NotAdepositor");
+        } 
     });
 
   });
